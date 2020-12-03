@@ -9,15 +9,15 @@ class XCodeprojPatcher
   attr :target_main
   attr :target_extension
 
-  def run(file, shortVersion, fullVersion, platform, configHash)
+  def run(file, shortVersion, fullVersion, platform, selfHosted, configHash)
     open_project file
     open_target_main
 
     group = @project.main_group.new_group('Configuration')
     @configFile = group.new_file('xcode.xconfig')
 
-    setup_target_main shortVersion, fullVersion, platform, configHash
-    setup_target_extension shortVersion, fullVersion, platform, configHash
+    setup_target_main shortVersion, fullVersion, platform, selfHosted, configHash
+    setup_target_extension shortVersion, fullVersion, platform, selfHosted, configHash
 
     setup_target_loginitem shortVersion, fullVersion, configHash if platform == "macos"
 
@@ -38,7 +38,7 @@ class XCodeprojPatcher
     die 'Unable to open MozillaVPN target'
   end
 
-  def setup_target_main(shortVersion, fullVersion, platform, configHash)
+  def setup_target_main(shortVersion, fullVersion, platform, selfHosted, configHash)
     @target_main.build_configurations.each do |config|
       config.base_configuration_reference = @configFile
 
@@ -56,7 +56,13 @@ class XCodeprojPatcher
 
       # other config
       config.build_settings['INFOPLIST_FILE'] ||= platform + '/app/Info.plist'
-      config.build_settings['CODE_SIGN_ENTITLEMENTS'] ||= platform +'/app/MozillaVPN.entitlements'
+
+      if selfHosted
+        config.build_settings['CODE_SIGN_ENTITLEMENTS'] ||= platform + '/app/selfHosted.entitlements'
+      else
+        config.build_settings['CODE_SIGN_ENTITLEMENTS'] ||= platform + '/app/main.entitlements'
+      end
+
       config.build_settings['CODE_SIGN_IDENTITY'] ||= 'Apple Development'
       config.build_settings['ENABLE_BITCODE'] ||= 'NO' if platform == 'ios'
       config.build_settings['SDKROOT'] = 'iphoneos' if platform == 'ios'
@@ -68,10 +74,14 @@ class XCodeprojPatcher
         groupId = configHash['GROUP_ID_IOS']
       end
 
-      config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= [
-        'GROUP_ID=\"' + groupId + '\"',
-        "VPN_NE_BUNDLEID=\\\"" + (platform == 'macos' ? configHash['NETEXT_ID_MACOS'] : configHash['NETEXT_ID_IOS']) + "\\\"",
-      ]
+      preprocessor = [ 'GROUP_ID=\"' + groupId + '\"' ]
+      if platform == 'macos'
+        preprocessor.push("VPN_NE_BUNDLEID=\\\"" + configHash['NETEXT_ID_MACOS'] + (selfHosted ? ".systemextension" : "") + "\\\"")
+      else
+        preprocessor.push("VPN_NE_BUNDLEID=\\\"" + configHash['NETEXT_ID_IOS'] + "\\\"")
+      end
+
+      config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= preprocessor
 
       if config.name == 'Release'
         config.build_settings['SWIFT_OPTIMIZATION_LEVEL'] ||= '-Onone'
@@ -113,8 +123,12 @@ class XCodeprojPatcher
     }
   end
 
-  def setup_target_extension(shortVersion, fullVersion, platform, configHash)
-    @target_extension = @project.new_target(:app_extension, 'WireGuardNetworkExtension', :osx)
+  def setup_target_extension(shortVersion, fullVersion, platform, selfHosted, configHash)
+    @target_extension = @project.new_target(:app_extension, 'WireGuardNetworkExtension', platform == 'macos' ? :osx : :ios)
+    if platform == 'macos' and selfHosted
+      @target_extension.product_type = 'com.apple.product-type.system-extension';
+    else
+    end
 
     @target_extension.build_configurations.each do |config|
       config.base_configuration_reference = @configFile
@@ -127,14 +141,25 @@ class XCodeprojPatcher
       # Versions and names
       config.build_settings['MARKETING_VERSION'] ||= shortVersion
       config.build_settings['CURRENT_PROJECT_VERSION'] ||= fullVersion
-      config.build_settings['PRODUCT_BUNDLE_IDENTIFIER'] ||= configHash['NETEXT_ID_MACOS'] if platform == 'macos'
+      config.build_settings['PRODUCT_BUNDLE_IDENTIFIER'] ||= configHash['NETEXT_ID_MACOS'] if platform == 'macos' and not selfHosted
+      config.build_settings['PRODUCT_BUNDLE_IDENTIFIER'] ||= configHash['NETEXT_ID_MACOS'] + ".systemextension" if platform == 'macos' and selfHosted
       config.build_settings['PRODUCT_BUNDLE_IDENTIFIER'] ||= configHash['NETEXT_ID_IOS'] if platform == 'ios'
-      config.build_settings['PRODUCT_NAME'] = 'WireGuardNetworkExtension'
+
+      if platform == 'macos' and selfHosted
+        config.build_settings['PRODUCT_NAME'] = 'org.mozilla.macos.FirefoxVPN.network-extension'
+      else
+        config.build_settings['PRODUCT_NAME'] = 'WireGuardNetworkExtension'
+      end
 
       # other configs
       config.build_settings['INFOPLIST_FILE'] ||= 'macos/networkextension/Info.plist'
-      config.build_settings['CODE_SIGN_ENTITLEMENTS'] ||= platform + '/networkextension/MozillaVPNNetworkExtension.entitlements'
       config.build_settings['CODE_SIGN_IDENTITY'] = 'Apple Development'
+
+      if selfHosted
+        config.build_settings['CODE_SIGN_ENTITLEMENTS'] ||= platform + '/networkextension/selfHosted.entitlements'
+      else
+        config.build_settings['CODE_SIGN_ENTITLEMENTS'] ||= platform + '/networkextension/MozillaVPNNetworkExtension.entitlements'
+      end
 
       if platform == 'ios'
         config.build_settings['ENABLE_BITCODE'] ||= 'NO'
@@ -175,8 +200,7 @@ class XCodeprojPatcher
 
     end
 
-    group = @project.main_group.new_group('WireGuardExtension')
-    [
+    files = [
       '3rdparty/wireguard-apple/WireGuard/WireGuardNetworkExtension/PacketTunnelProvider.swift',
       '3rdparty/wireguard-apple/WireGuard/WireGuardNetworkExtension/PacketTunnelSettingsGenerator.swift',
       '3rdparty/wireguard-apple/WireGuard/WireGuardNetworkExtension/DNSResolver.swift',
@@ -193,7 +217,14 @@ class XCodeprojPatcher
       '3rdparty/wireguard-apple/WireGuard/Shared/Model/InterfaceConfiguration.swift',
       '3rdparty/wireguard-apple/WireGuard/Shared/Model/PeerConfiguration.swift',
       '3rdparty/wireguard-apple/WireGuard/Shared/FileManager+Extension.swift',
-    ].each { |filename|
+    ]
+
+    if selfHosted
+      files.push('macos/networkextension/main.swift');
+    end
+
+    group = @project.main_group.new_group('WireGuardExtension')
+    files.each { |filename|
       file = group.new_file(filename)
       @target_extension.add_file_references([file])
     }
@@ -236,7 +267,13 @@ class XCodeprojPatcher
 
     copy_appex = @target_main.new_copy_files_build_phase
     copy_appex.name = 'Copy Network-Extension plugin'
-    copy_appex.symbol_dst_subfolder_spec = :plug_ins
+
+    if selfHosted
+      copy_appex.symbol_dst_subfolder_spec = :wrapper
+      copy_appex.dst_path = 'Contents/Library/SystemExtensions'
+    else
+      copy_appex.symbol_dst_subfolder_spec = :plug_ins
+    end
 
     appex_file = copy_appex.add_file_reference @target_extension.product_reference
     appex_file.settings = { "ATTRIBUTES" => ['RemoveHeadersOnCopy'] }
@@ -346,7 +383,8 @@ configFile.each { |line|
 
 platform = "macos"
 platform = "ios" if ARGV[3] == "ios"
+selfHosted = true if ARGV[4] == "1"
 
 r = XCodeprojPatcher.new
-r.run ARGV[0], ARGV[1], ARGV[2], platform, config
+r.run ARGV[0], ARGV[1], ARGV[2], platform, selfHosted, config
 exit 0

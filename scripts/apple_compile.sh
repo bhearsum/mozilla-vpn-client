@@ -13,13 +13,15 @@ fi
 RELEASE=1
 OS=
 PROD=
+SELFHOSTED=
 
 helpFunction() {
   print G "Usage:"
-  print N "\t$0 <macos|ios> [-d|--debug] [-p|--prod]"
+  print N "\t$0 <macos|ios> [-d|--debug] [-p|--prod] [-s|--selfhosted]"
   print N ""
   print N "By default, the project is compiled in release mode. Use -d or --debug for a debug build."
   print N "By default, the project is compiled in staging mode. If you want to use the production env, use -p or --prod."
+  print N "A self-hosted build, for macOS, compiles the network extension as a system one"
   print N ""
   print G "Config variables:"
   print N "\tQT_MACOS_BIN=</path/of/the/qt/bin/folder/for/macos>"
@@ -43,6 +45,10 @@ while [[ $# -gt 0 ]]; do
     PROD=1
     shift
     ;;
+  -s | --selfhosted)
+    SELFHOSTED=1
+    shift
+    ;;
   -h | --help)
     helpFunction
     ;;
@@ -59,6 +65,10 @@ done
 
 if [[ "$OS" != "macos" ]] && [[ "$OS" != "ios" ]]; then
   helpFunction
+fi
+
+if [[ "$OS" == "ios" ]] && [[ "$SELFHOSTED" ]]; then
+  die "Selfhosted builds are macos only"
 fi
 
 if ! [ -d "src" ] || ! [ -d "ios" ] || ! [ -d "macos" ]; then
@@ -132,17 +142,27 @@ else
   print G no
 fi
 
+SELFHOSTEDMODE=
+printn Y "Self-hosted mode: "
+if [[ "$SELFHOSTED" ]]; then
+  print G yes
+  SELFHOSTEDMODE="CONFIG+=selfhosted"
+else
+  print G no
+fi
+
 print Y "Creating the xcode project via qmake..."
 $QMAKE \
   VERSION=$SHORTVERSION \
   -spec macx-xcode \
   $MODE \
   $PRODMODE \
+  $SELFHOSTEDMODE \
   $PLATFORM \
   src/src.pro || die "Compilation failed"
 
 print Y "Patching the xcode project..."
-ruby scripts/xcode_patcher.rb "MozillaVPN.xcodeproj" "$SHORTVERSION" "$FULLVERSION" "$OS" || die "Failed to merge xcode with wireguard"
+ruby scripts/xcode_patcher.rb "MozillaVPN.xcodeproj" "$SHORTVERSION" "$FULLVERSION" "$OS" "$SELFHOSTED" || die "Failed to merge xcode with wireguard"
 print G "done."
 
 print Y "Opening in XCode..."

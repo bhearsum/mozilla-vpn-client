@@ -48,5 +48,17 @@
 
 	<key>com.wireguard.macos.app_group_id</key>
 	<string>$(DEVELOPMENT_TEAM).group.$(APP_ID_MACOS)</string>
+	<key>NSSystemExtensionUsageDescription</key>
+        <string>The mozilla VPN network package tunnel</string>
+	<key>NetworkExtension</key>
+	<dict>
+		<key>NEMachServiceName</key>
+	        <string>$(DEVELOPMENT_TEAM).group.$(APP_ID_MACOS)</string>
+		<key>NEProviderClasses</key>
+		<dict>
+			<key>com.apple.networkextension.packet-tunnel</key>
+			<string>$(PRODUCT_MODULE_NAME).PacketTunnelProvider</string>
+		</dict>
+	</dict>
 </dict>
 </plist>

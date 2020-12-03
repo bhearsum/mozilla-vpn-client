@@ -4,9 +4,21 @@
 
 import Foundation
 import NetworkExtension
+import SystemConfiguration
+import SystemExtensions
 
 let vpnName = "Mozilla VPN"
 var vpnBundleID = "";
+
+private class MacOSControllerImplDelegate : NSObject {
+    private var impl: MacOSControllerImpl? = nil
+
+    public func setImpl(impl: MacOSControllerImpl) {
+        self.impl = impl;
+    }
+}
+
+private let vpnDelegate = MacOSControllerImplDelegate()
 
 @objc class VPNIPAddressRange : NSObject {
     public var address: NSString = ""
@@ -32,6 +44,7 @@ public class MacOSControllerImpl : NSObject {
     private var switchingServer: Bool = false
     private var switchingServerConfig: TunnelConfiguration? = nil
     private var switchingServerFailureCallback: (() -> Void)? = nil
+    private var initClosure: ((ConnectionState, Date?) -> Void)? = nil
 
     @objc enum ConnectionState: Int { case Error, Connected, Disconnected }
 
@@ -52,15 +65,40 @@ public class MacOSControllerImpl : NSObject {
 
         NotificationCenter.default.addObserver(self, selector: #selector(self.vpnStatusDidChange(notification:)), name: Notification.Name.NEVPNStatusDidChange, object: nil)
 
+        let request = OSSystemExtensionRequest.activationRequest(
+            forExtensionWithIdentifier: "org.mozilla.macos.FirefoxVPN.network-extension",
+            queue: .main
+        )
+
+        self.initClosure = closure
+
+        vpnDelegate.setImpl(impl: self)
+        request.delegate = vpnDelegate
+
+        OSSystemExtensionManager.shared.submitRequest(request)
+        Logger.global?.log(message: "SystemExtension request submitted.")
+    }
+
+    public func continueInit(status: Bool) {
+        if (!status) {
+            Logger.global?.log(message: "Failed to register the system extension")
+            if (self.initClosure != nil) {
+                self.initClosure!(ConnectionState.Error, nil)
+                self.initClosure = nil
+            }
+            return
+        }
+
         NETunnelProviderManager.loadAllFromPreferences { [weak self] managers, error in
-            if let error = error {
-                Logger.global?.log(message: "Loading from preference failed: \(error)")
-                closure(ConnectionState.Error, nil)
+            if self == nil || self!.initClosure == nil {
+                Logger.global?.log(message: "We are shutting down.")
                 return
             }
 
-            if self == nil {
-                Logger.global?.log(message: "We are shutting down.")
+            if let error = error {
+                Logger.global?.log(message: "Loading from preference failed: \(error)")
+                self!.initClosure!(ConnectionState.Error, nil)
+                self!.initClosure = nil
                 return
             }
 
@@ -71,7 +109,8 @@ public class MacOSControllerImpl : NSObject {
             if tunnel == nil {
                 Logger.global?.log(message: "Creating the tunnel")
                 self!.tunnel = NETunnelProviderManager()
-                closure(ConnectionState.Disconnected, nil)
+                self!.initClosure!(ConnectionState.Disconnected, nil)
+                self!.initClosure = nil
                 return
             }
 
@@ -79,10 +118,12 @@ public class MacOSControllerImpl : NSObject {
 
             self!.tunnel = tunnel
             if tunnel?.connection.status == .connected {
-                closure(ConnectionState.Connected, tunnel?.connection.connectedDate)
+                self!.initClosure!(ConnectionState.Connected, tunnel?.connection.connectedDate)
             } else {
-                closure(ConnectionState.Disconnected, nil)
+                self!.initClosure!(ConnectionState.Disconnected, nil)
             }
+
+            self!.initClosure = nil
         }
     }
 
@@ -292,6 +333,49 @@ public class MacOSControllerImpl : NSObject {
         } catch {
             Logger.global?.log(message: "Failed to retrieve data from session")
             callback("", "")
+        }
+    }
+}
+
+extension MacOSControllerImplDelegate: OSSystemExtensionRequestDelegate {
+    @available(OSX 10.15, *)
+    func request(_ request: OSSystemExtensionRequest, actionForReplacingExtension existing: OSSystemExtensionProperties, withExtension replacement: OSSystemExtensionProperties) -> OSSystemExtensionRequest.ReplacementAction {
+        Logger.global?.log(message: "allowing replacement of \(existing.bundleVersion) with \(replacement.bundleVersion)");
+        return .replace
+    }
+    
+    @available(OSX 10.15, *)
+    func requestNeedsUserApproval(_ request: OSSystemExtensionRequest) {
+        Logger.global?.log(message: "activation request needs user approval")
+    }
+    
+    @available(OSX 10.15, *)
+    func request(_ request: OSSystemExtensionRequest, didFinishWithResult result: OSSystemExtensionRequest.Result) {
+        if (self.impl == nil) {
+            return;
+        }
+
+        switch result {
+        case .completed:
+            Logger.global?.log(message: "activation request succeeded")
+            self.impl!.continueInit(status: true);
+        case .willCompleteAfterReboot:
+            Logger.global?.log(message: "activation request succeeded, requires restart")
+        @unknown default:
+            Logger.global?.log(message: "activation request succeeded, weird result: \(result.rawValue)")
+            self.impl!.continueInit(status: true);
+        }
+
+        self.impl = nil
+    }
+    
+    @available(OSX 10.15, *)
+    func request(_ request: OSSystemExtensionRequest, didFailWithError error: Error) {
+        let nsError = error as NSError
+        Logger.global?.log(message: "activation request failed, error: \(nsError.domain) - \(nsError.localizedDescription)")
+        if (self.impl == nil) {
+            self.impl!.continueInit(status: false)
+            self.impl = nil
         }
     }
 }

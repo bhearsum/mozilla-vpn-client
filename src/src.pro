@@ -397,7 +397,12 @@ else:macos {
                 ../3rdparty/Wireguard-apple/WireGuard/WireGuard/Crypto \
                 ../3rdparty/wireguard-apple/WireGuard/Shared/Model \
 
-    QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.14
+    selfhosted {
+        QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.15
+    } else {
+        QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.14
+    }
+
     QMAKE_INFO_PLIST=../macos/app/Info.plist
     QMAKE_ASSET_CATALOGS_APP_ICON = "AppIcon"
 
