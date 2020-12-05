@@ -7,11 +7,13 @@ import "../themes/themes.js" as Theme
 
 Rectangle {
     id: loader
+
+    property var transparentBackgroundColor: false
     anchors.fill: parent
     anchors.margins: -1
     radius: Theme.cornerRadius
     opacity: 0
-    color: "#98bff2"
+    color: transparentBackgroundColor ? Theme.bgColor : "#98bff2"
 
     state: "inactive"
 
@@ -77,10 +79,11 @@ Rectangle {
     VPNIcon {
         id: loadingIcon
 
-        source: "../resources/buttonLoader.svg"
+        source: transparentBackgroundColor ? "../resources/linkButtonLoader" : "../resources/buttonLoader.svg"
         anchors.centerIn: loader
         sourceSize.height: 28
         sourceSize.width: 28
+        antialiasing: true
     }
 
     PropertyAnimation {

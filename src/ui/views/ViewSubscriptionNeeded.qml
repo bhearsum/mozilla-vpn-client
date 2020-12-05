@@ -198,7 +198,10 @@ VPNFlickable {
             labelText: qsTrId("vpn.main.restorePurchases")
             Layout.alignment: Qt.AlignHCenter
             Layout.preferredHeight: Theme.rowHeight
-            onClicked: VPN.restoreSubscription()
+            onClicked: {
+                loaderVisible = true;
+                VPN.restoreSubscription();
+            }
         }
 
         Rectangle { // vertical spacer

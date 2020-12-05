@@ -81,6 +81,7 @@ VPNButtonBase {
     VPNButtonLoader {
         id: loader
         state: loaderVisible ? "active" : "inactive"
+        transparentBackgroundColor: true
     }
 
     VPNMouseArea {
@@ -100,6 +101,7 @@ VPNButtonBase {
         verticalAlignment: Text.AlignVCenter
         font.pixelSize: fontSize
         font.family: fontName
+
 
         Behavior on color {
             ColorAnimation {
