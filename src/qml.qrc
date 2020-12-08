@@ -398,5 +398,6 @@
         <file>ui/resources/copy.svg</file>
         <file>ui/components/VPNLoader.qml</file>
         <file>ui/components/VPNGreyLink.qml</file>
+        <file>ui/states/StateSubscriptionError.qml</file>
     </qresource>
 </RCC>
