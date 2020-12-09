@@ -24,10 +24,7 @@ Window {
     visible: true
     width: fullscreenRequired() ? maximumWidth : 360
     height: fullscreenRequired() ? maximumHeight : 454
-    maximumHeight: height
-    maximumWidth: width
-    minimumHeight: height
-    minimumWidth: width
+
     //% "Mozilla VPN"
     title: qsTrId("vpn.main.productName")
     color: "#F9F9FA"
@@ -129,7 +126,7 @@ Window {
 
                     PropertyChanges {
                         target: loader
-                        source: "states/StateMain.qml"
+                        source: "states/StateSubscriptionError.qml"
                     }
 
                 },
