@@ -91,9 +91,8 @@ class XCodeprojPatcher
     # WireGuard group
     group = @project.main_group.new_group('WireGuard')
 
-    [
+    files = [
       'macos/gobridge/wireguard-go-version.h',
-      '3rdparty/wireguard-apple/WireGuard/Shared/Keychain.swift',
       '3rdparty/wireguard-apple/WireGuard/Shared/Model/Data+KeyEncoding.swift',
       '3rdparty/wireguard-apple/WireGuard/Shared/Model/IPAddressRange.swift',
       '3rdparty/wireguard-apple/WireGuard/Shared/Model/InterfaceConfiguration.swift',
@@ -106,7 +105,15 @@ class XCodeprojPatcher
       '3rdparty/wireguard-apple/WireGuard/Shared/Model/DNSServer.swift',
       '3rdparty/wireguard-apple/WireGuard/WireGuard/LocalizationHelper.swift',
       '3rdparty/wireguard-apple/WireGuard/Shared/FileManager+Extension.swift',
-    ].each { |filename|
+    ]
+
+    if platform == 'macos' and selfHosted
+      files.push('macos/networkextension/Keychain.swift')
+    else
+      files.push('3rdparty/wireguard-apple/WireGuard/Shared/Keychain.swift')
+    end
+
+    files.each { |filename|
       file = group.new_file(filename)
       @target_main.add_file_references([file])
     }
