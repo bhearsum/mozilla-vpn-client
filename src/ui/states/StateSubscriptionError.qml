@@ -15,9 +15,8 @@ Item {
     property var headlineText
     property var footerLinkIsVisible: true
 
-    Component.onCompleted: fade.start()
     height: window.safeContentHeight
-    width: parent.width
+    width: window.width
 
     VPNHeadline {
         id: headline
@@ -27,60 +26,95 @@ Item {
         anchors.horizontalCenter: root.horizontalCenter
         width: Math.min(Theme.maxTextWidth, root.width * .85)
         //% "Error confirming subscription…"
-//        text: qsTrId("vpn.subscription.subscriptionValidationError")
-        text: "Error confirming subscription…"
+        text: qsTrId("vpn.subscription.subscriptionValidationError")
+
     }
 
-    Rectangle {
-        id: warningIconWrapper
-
-        height: 48
-        width: 48
-        color: Theme.red
-        radius: height / 2
+    Item {
+        height: root.height - (headline.y + headline.paintedHeight) - (footerItems.childrenRect.height) - Theme.rowHeight
         anchors.top: headline.bottom
-        anchors.topMargin: Theme.windowMargin * 2
-        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.left: root.left
+        anchors.right: root.right
+        width: root.width
 
-        Image {
-            source: "../resources/warning-white.svg"
-            antialiasing: true
-            sourceSize.height: 20
-            sourceSize.width: 20
-            anchors.centerIn: parent
+        Item {
+            id: floatingContentWrapper
+
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.right: parent.right
+            anchors.left: parent.left
+            height: childrenRect.height
+
+            Rectangle {
+                id: warningIconWrapper
+
+                height: 48
+                width: 48
+                color: Theme.red
+                radius: height / 2
+                anchors.top: floatingContentWrapper.top
+                anchors.horizontalCenter: floatingContentWrapper.horizontalCenter
+                Image {
+                    source: "../resources/warning-white.svg"
+                    antialiasing: true
+                    sourceSize.height: 20
+                    sourceSize.width: 20
+                    anchors.centerIn: parent
+                }
+            }
+
+            VPNTextBlock {
+                id: copyBlock1
+
+                anchors.top: warningIconWrapper.bottom
+                anchors.topMargin: Theme.windowMargin * 2
+                anchors.horizontalCenter: parent.horizontalCenter
+                horizontalAlignment: Text.AlignHCenter
+                width: Theme.maxTextWidth
+                font.pixelSize: Theme.fontSize
+                lineHeight: 22
+                //% "Another Firefox Account has already subscribed using this Apple ID."
+                text:qsTrId("vpn.subscription.anotherFxaSubscribed")
+            }
+
+            VPNTextBlock {
+                id: copyBlock2
+
+                anchors.top: copyBlock1.bottom
+                anchors.topMargin: Theme.windowMargin * 1.5
+                anchors.horizontalCenter: parent.horizontalCenter
+                horizontalAlignment: Text.AlignHCenter
+                width: Theme.maxTextWidth
+                font.pixelSize: Theme.fontSize
+                lineHeight: 22
+                //% "Visit our help center to learn more about managing your subscriptions."
+                text: qsTrId("vpn.subscription.visitHelpCenter")
+            }
+
+
         }
     }
 
-    VPNTextBlock {
-        id: copyBlock1
-        anchors.top: warningIconWrapper.bottom
-        anchors.topMargin: Theme.windowMargin * 2
-        anchors.horizontalCenter: parent.horizontalCenter
-        horizontalAlignment: Text.AlignHCenter
-        //% "Another Firefox Account has already subscribed using this Apple ID."
-        text: "Another Firefox Account has already subscribed using this Apple ID."
-    }
+    Item {
+        id: footerItems
 
-    VPNTextBlock {
-        id: copyBlock2
-        anchors.top: copyBlock1.bottom
-        anchors.topMargin: Theme.windowMargin
-        anchors.horizontalCenter: parent.horizontalCenter
-        horizontalAlignment: Text.AlignHCenter
-        //% "Visit our help center below to learn more about how to manage your subscriptions."
-        text: "Visit our help center below to learn more about how to manage your subscriptions."
-    }
+        anchors.bottom: root.bottom
+        anchors.left: root.left
+        anchors.right: root.right
 
-    VPNButton {
-        text: "Get help"
-        anchors.bottom: signOff.top
-        anchors.bottomMargin: Theme.windowMargin
-        anchors.horizontalCenter: parent.horizontalCenter
-    }
 
-    VPNSignOut {
-        id: signOff
-        height: Theme.rowHeight
+        VPNButton {
+            text: "Get help"
+            anchors.bottom: signOff.top
+            anchors.bottomMargin: Theme.windowMargin
+            anchors.horizontalCenter: parent.horizontalCenter
+        }
+
+        VPNSignOut {
+            id: signOff
+
+            height: Theme.rowHeight
+        }
     }
 
 }
