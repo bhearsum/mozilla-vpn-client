@@ -14,6 +14,7 @@ Item {
     property bool isSettingsView: false
     property bool isMainView: false
     property bool accessibleIgnored: false
+    property bool btnDisabled: false
     property alias forceFocus: iconButton.focus
 
     width: parent.width
@@ -42,6 +43,8 @@ Item {
     VPNIconButton {
         id: iconButton
 
+        skipEnsureVisible: true // prevents scrolling of lists when this is focused
+
         onClicked: isMainView ? mainStackView.pop() : (isSettingsView ? settingsStackView.pop() : stackview.pop())
         anchors.top: parent.top
         anchors.left: parent.left
@@ -52,6 +55,8 @@ Item {
         accessibleName: qsTrId("vpn.main.back")
         Accessible.ignored: accessibleIgnored
 
+        enabled: !btnDisabled
+        opacity: enabled ? 1 : .4
         Image {
             id: backImage
 

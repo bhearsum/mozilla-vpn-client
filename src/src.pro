@@ -94,6 +94,7 @@ SOURCES += \
         releasemonitor.cpp \
         rfc1918.cpp \
         rfc4193.cpp \
+        serveri18n.cpp \
         settingsholder.cpp \
         simplenetworkmanager.cpp \
         statusicon.cpp \
@@ -177,6 +178,7 @@ HEADERS += \
         releasemonitor.h \
         rfc1918.h \
         rfc4193.h \
+        serveri18n.h \
         settingsholder.h \
         simplenetworkmanager.h \
         statusicon.h \
@@ -195,6 +197,17 @@ HEADERS += \
         update/updater.h \
         update/versionapi.h \
         urlopener.h
+
+webextension {
+    DEFINES += MVPN_WEBEXTENSION
+
+    SOURCES += \
+            server/serverconnection.cpp \
+            server/serverhandler.cpp
+    HEADERS += \
+            server/serverconnection.h \
+            server/serverhandler.h
+}
 
 inspector {
     message(Enabling the inspector)
@@ -304,7 +317,9 @@ else:linux:!android {
             platforms/linux/linuxcryptosettings.cpp \
             platforms/linux/linuxdependencies.cpp \
             platforms/linux/linuxnetworkwatcher.cpp \
+            platforms/linux/linuxnetworkwatcherworker.cpp \
             platforms/linux/linuxpingsendworker.cpp \
+            platforms/linux/linuxsystemtrayhandler.cpp \
             systemtraynotificationhandler.cpp \
             tasks/authenticate/desktopauthenticationlistener.cpp
 
@@ -315,7 +330,9 @@ else:linux:!android {
             platforms/linux/linuxcontroller.h \
             platforms/linux/linuxdependencies.h \
             platforms/linux/linuxnetworkwatcher.h \
+            platforms/linux/linuxnetworkwatcherworker.h \
             platforms/linux/linuxpingsendworker.h \
+            platforms/linux/linuxsystemtrayhandler.h \
             systemtraynotificationhandler.h \
             tasks/authenticate/desktopauthenticationlistener.h
 
@@ -372,6 +389,7 @@ else:linux:!android {
     icon48x48.files = ../linux/extra/icons/48x48/mozillavpn.png
     INSTALLS += icon48x48
 
+    DEFINES += MVPN_ICON_PATH=\\\"$${USRPATH}/share/icons/hicolor/64x64/apps/mozillavpn.png\\\"
     icon64x64.path = $${USRPATH}/share/icons/hicolor/64x64/apps
     icon64x64.files = ../linux/extra/icons/64x64/mozillavpn.png
     INSTALLS += icon64x64
@@ -429,7 +447,7 @@ else:android {
                 platforms/android/androidnotificationhandler.cpp \
                 platforms/android/androidutils.cpp \
                 platforms/android/androidwebview.cpp \
-                platforms/android/androidstartatbootwatcher.cpp \
+                platforms/android/androidvpnactivity.cpp \
                 platforms/android/androiddatamigration.cpp \
                 platforms/android/androidappimageprovider.cpp \
                 platforms/android/androidapplistprovider.cpp \
@@ -441,7 +459,7 @@ else:android {
                 platforms/android/androidnotificationhandler.h \
                 platforms/android/androidutils.h \
                 platforms/android/androidwebview.h \
-                platforms/android/androidstartatbootwatcher.h\
+                platforms/android/androidvpnactivity.h \
                 platforms/android/androiddatamigration.h\
                 platforms/android/androidappimageprovider.h \
                 platforms/android/androidapplistprovider.h \
@@ -740,6 +758,8 @@ else:wasm {
 else {
     error(Unsupported platform)
 }
+
+RESOURCES += $$PWD/../translations/servers.qrc
 
 exists($$PWD/../translations/translations.pri) {
     include($$PWD/../translations/translations.pri)

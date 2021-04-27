@@ -38,6 +38,7 @@
 #endif
 #ifdef MVPN_ANDROID
 #  include "platforms/android/androiddatamigration.h"
+#  include "platforms/android/androidvpnactivity.h"
 #endif
 
 #ifdef MVPN_INSPECTOR
@@ -196,6 +197,7 @@ void MozillaVPN::initialize() {
     AndroidDataMigration::migrate();
     settingsHolder->setNativeAndroidDataMigrated(true);
   }
+  AndroidVPNActivity::init();
 #endif
 
   m_private->m_captivePortalDetection.initialize();
@@ -737,6 +739,16 @@ void MozillaVPN::errorHandle(ErrorHandler::ErrorType error) {
   AlertType alert = NoAlert;
 
   switch (error) {
+    case ErrorHandler::VPNDependentConnectionError:
+      // This type of error might be caused by switchting the VPN
+      // on, in which case it's okay to be ignored.
+      // In Case the vpn is not connected - handle this like a
+      // ConnectionFailureError
+      if (controller()->state() == Controller::StateOn) {
+        logger.log() << "Ignore network error probably caused by enabled VPN";
+        break;
+      }
+      [[fallthrough]];
     case ErrorHandler::ConnectionFailureError:
       alert = ConnectionFailedAlert;
       break;

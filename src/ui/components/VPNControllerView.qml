@@ -445,7 +445,12 @@ Rectangle {
 
     VPNAnimatedRings {
         id: animatedRingsWrapper
-        isCurrentyVisible: stackview.depth === 1
+        // Make sure we only do the render animation when
+        // The element is visible &&
+        // the application is not minimized
+        isCurrentyVisible: stackview.depth === 1 &&
+                           (Qt.application.state === Qt.ApplicationActive ||
+                            Qt.application.state === Qt.ApplicationInactive)
     }
 
     VPNMainImage {
@@ -494,6 +499,7 @@ Rectangle {
     VPNIconButton {
         id: settingsButton
         objectName: "settingsButton"
+        opacity: 1
 
         onClicked: stackview.push("../views/ViewSettings.qml", StackView.Immediate)
         anchors.top: parent.top

@@ -119,6 +119,7 @@ GROUP_ID_MACOS = <>
 APP_ID_MACOS = org.mozilla.macos.FirefoxVPN
 NETEXT_ID_MACOS = org.mozilla.macos.FirefoxVPN.network-extension
 LOGIN_ID_MACOS = org.mozilla.macos.FirefoxVPN.login
+NATIVEMESSAGING_ID_MACOS = org.mozilla.macos.FirefoxVPN.native-messaging
 
 # IOS configuration
 GROUP_ID_IOS = <>
@@ -154,6 +155,7 @@ GROUP_ID_MACOS = <>
 APP_ID_IOS = <>
 NETEXT_ID_IOS = <>
 LOGIN_ID_IOS = <>
+NATIVEMESSAGING_ID_MACOS = <>
 
 # IOS configuration
 GROUP_ID_IOS = <>
@@ -202,6 +204,11 @@ Openssl can be obtained from here: https://www.openssl.org/source/
 Qt5.15 can be obtained from: https://download.qt.io/archive/qt/5.15/5.15.1/single/qt-everywhere-src-5.15.1.tar.xz
 
 There is also a script to compile the application: `scripts\windows_compile.bat`
+
+## Inspector
+
+To build the inspector `qmake CONFIG+=debug CONFIG+=inspector`. Or use appropriate script parameters.
+When running MozillaVPN, go to http://localhost:8766 to view the inspector.
 
 ## Bug report
 

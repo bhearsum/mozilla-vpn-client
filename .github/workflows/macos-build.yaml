@@ -3,10 +3,12 @@ name: MacOS
 on:
   push:
     branches:
-     - main
+      - main
+      - 'releases/**'
   pull_request:
     branches:
       - main
+      - 'releases/**'
 
 jobs:
   macos-staging:
@@ -42,6 +44,7 @@ jobs:
         shell: bash
         run: |
           export PATH=/Users/runner/work/mozilla-vpn-client/mozilla-vpn-client/qt_static_macos/qt/bin:$PATH
+          git submodule update --remote --depth 1 i18n
           python3 scripts/importLanguages.py
 
       - name: Configuring the build
@@ -122,6 +125,7 @@ jobs:
         shell: bash
         run: |
           export PATH=/Users/runner/work/mozilla-vpn-client/mozilla-vpn-client/qt_static_macos/qt/bin:$PATH
+          git submodule update --remote --depth 1 i18n
           python3 scripts/importLanguages.py -p
 
       - name: Configuring the build
