@@ -1,0 +1,129 @@
+# This is a single file that will generate many different tasks. It has _no_ loaders or transforms
+# defined -- the assumption is that taskgraph will have a default that is capable of loading
+# and transforming these definitions into tasks comparable to those that exist now. (This code
+# has not been written yet.)
+#
+# There's a few notable changes and omissions compared to the current definitions, which are
+# described in more detail below.
+#
+# After writing all of this, I did come to realize that at least part - maybe most - of the
+# improvement comes from more defaults being set in a loader or transform, which makes me
+# question to some degree the value of trying to overhaul further than that. I still think there's
+# some benefit to letting people specifying everything in one file (in large part because that's
+# how Actions & CircleCI work) - but perhaps trying to pare down what's needed in `kinds`
+# to the bare minimum is enough of an improvement that requiring separate `kinds` wouldn't
+# be too much of a stretch. It may be worth trying to prototype the loader/transforms required
+# for this file to better inform that thought.
+#
+# One other note: this repo is being used as a way to prototype this idea solely because it has
+# a simple enough, yet real, set of tasks. It lets me see what "simple" tasks like builds and
+# tests might look like, as well as see how they would interact with upstream and downstream
+# tasks that come from traditional kinds. I would not recommend we actually ever implement this
+# in vpn.
+
+tasks:
+  # Builds
+  build-addons/opt:
+    # These are Github events. I believe this also handles the `requires-level` case we have
+    # for certain builds right now (omitting `pull-request` effectively restricts to level 3)
+    # Both of these ideas are basically another way of implementing `run-on-projects` AFAICT
+    # (but in a world where all levels of access are within the same repo).
+    on:
+      - pull-request
+      - push
+      - release
+    # Notably, this is a reference to a task defined elsewhere (the `docker-image` kind)
+    image: wasm
+    # A reference to one of the workers defined in `config.yml`
+    worker-type: b-linux
+    # A much simplified version of the `run` block from the existing config. The default
+    # loader and/or transforms will add some defaults, such as:
+    # using: run-task
+    # use-caches: true
+    # cwd: '{checkout}'
+    run:
+      command: ./taskcluster/scripts/addons/build.sh
+    # Just the usual treeherder block here. It feels like we could probably make some
+    # assumptions to generate most of this (or use non-compact names) -- but it's probably
+    # a worse solution, especially because many simple projects may choose to forego
+    # treeherder entirely
+    treeherder:
+      symbol: A
+      kind: build
+      tier: 1
+      platform: addons/all
+    # And now....for the omissions:
+    # - 'workers' section is omitted completely. `docker-image` is defined at a higher level,
+    #   `max-run-time` can have a sensible default (overridable), `chain-of-trust` can default
+    #   to true, and our standard `artifacts` entry (below) is probably enough for simple use
+    #   cases, and is to be added by a loader or transform:
+    #   artifacts:
+    #     - type: directory
+    #       name: public/build
+    #       path: /builds/worker/artifacts
+    # - `release-artifacts` appears to exist solely to feed `upstream-artifacts` in downstream
+    #   tasks that use the `multi_dep` transform. We can avoid the need for this by specifying
+    #   these in the downstream tasks instead (I'm a bit surprised we don't actually - as the
+    #   current system seems a bit implicit?)
+    # - `attributes` is only used to specify `build-type` for `addons-bundle`. But it defaults
+    #   to the `name` for builds, so we really don't need it...
+    # artifacts omitted -- a `/builds/worker/artifacts` directory will be set-up by default
+    # chain of trust omitted - will be set up by default
+
+  build-android-arm64/release:
+    on:
+      - push
+      - release
+    image: android-build-arm64
+    worker-type: b-linux-large
+    secrets:
+      # secret_name:filename_to_download_to
+      # secret name is relative to `project/mozillavpn` namespace
+      # could also be relative to repo:github.com/mozilla-mobile/mozilla-vpn-client ?
+      # This relies on something on the image knowing how to download secrets, which
+      # we would presumably embed into the `base` image for simple repos (which may
+      # eventually be part of `taskgraph`?)
+      tokens: mozillavpn_tokens
+    run:
+      command: ./taskcluster/scripts/build/android_build_release.sh arm64-v8a
+    treeherder:
+      symbol: B
+      kind: build
+      tier: 1
+      platform: android-arm64-v8a
+
+  build-android-armv7/release:
+    on:
+      - push
+      - release
+    image: android-build-armv7
+    worker-type: b-linux-large
+    secrets:
+      # secret_name:filename_to_download_to
+      # secret name is relative to `project/mozillavpn` namespace
+      # could also be relative to repo:github.com/mozilla-mobile/mozilla-vpn-client ?
+      tokens: mozillavpn_tokens
+    run:
+      command: ./taskcluster/scripts/build/android_build_release.sh armeabi-v7a
+    treeherder:
+      symbol: B
+      kind: build
+      tier: 1
+      platform: android/armv7
+
+  test-taskgraph-definition:
+    on:
+      - push
+      - pull-request
+    image: base
+    worker-type: b-linux
+    run:
+      command: >-
+        pip3 install -r taskcluster/requirements.txt &&
+        taskgraph full --p taskcluster/test/params &&
+        taskgraph full
+    treeherder:
+      symbol: test-taskgraph-definition
+      kind: test
+      platform: tests/opt
+      tier: 1

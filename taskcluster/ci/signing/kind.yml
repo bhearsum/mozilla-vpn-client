@@ -42,6 +42,18 @@ job-template:
             windows/opt: autograph_authenticode
             addons/opt: autograph_rsa
 
+    upstream-artifacts:
+        by-build-type:
+            android-arm64/release:
+                build-android-arm64/release:
+                    - mozillavpn-arm64-v8a-release.apk
+            android-armv7/release:
+                build-android-armv7/release:
+                    - mozillavpn-armeabi-v7a-release.apk
+            addons/opt:
+                build-addons/opt:
+                    - manifest.json
+
     treeherder:
         job-symbol:
             by-build-type:
