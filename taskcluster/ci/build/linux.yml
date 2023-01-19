@@ -3,43 +3,24 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ---
 task-defaults:
-    treeherder:
-        symbol: B
-        kind: build
-        tier: 1
     worker-type: b-linux
     worker:
         max-run-time: 3600
-        chain-of-trust: true
-        artifacts:
-            - type: directory
-              name: public/build
-              path: /builds/worker/artifacts
-    run:
-          using: run-task
-          use-caches: true
 
 linux/source:
     description: "Linux Source Build"
-    treeherder:
-        platform: linux/source
     worker:
         docker-image: {in-tree: build}
     run:
-        cwd: '{checkout}'
         command: >-
             ./scripts/linux/script.sh --source &&
             tar -C .tmp -zvcf /builds/worker/artifacts/mozillavpn-sources.tar.gz .
 
 linux/bionic:
     description: "Linux Build (Ubuntu/Bionic)"
-    treeherder:
-        platform: linux/bionic
     fetches:
-        build:
+        linux/source:
             - artifact: mozillavpn-sources.tar.gz
-    dependencies:
-        build: build-linux/source
     worker:
         docker-image: {in-tree: linux-build-bionic}
     run:
@@ -48,13 +29,9 @@ linux/bionic:
 
 linux/focal:
     description: "Linux Build (Ubuntu/Focal)"
-    treeherder:
-        platform: linux/focal
     fetches:
-        build:
+        linux/source:
             - artifact: mozillavpn-sources.tar.gz
-    dependencies:
-        build: build-linux/source
     worker:
         docker-image: {in-tree: linux-build-focal}
     run:
@@ -63,13 +40,9 @@ linux/focal:
 
 linux/jammy:
     description: "Linux Build (Ubuntu/Jammy)"
-    treeherder:
-        platform: linux/jammy
     fetches:
-        build:
+        linux/source:
             - artifact: mozillavpn-sources.tar.gz
-    dependencies:
-        build: build-linux/source
     worker:
         docker-image: {in-tree: linux-build-jammy}
     run:
@@ -78,13 +51,9 @@ linux/jammy:
 
 linux/kinetic:
     description: "Linux Build (Ubuntu/Kinetic)"
-    treeherder:
-        platform: linux/kinetic
     fetches:
-        build:
+        linux/source:
             - artifact: mozillavpn-sources.tar.gz
-    dependencies:
-        build: build-linux/source
     worker:
         docker-image: {in-tree: linux-build-kinetic}
     run:

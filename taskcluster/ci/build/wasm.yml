@@ -6,20 +6,8 @@ wasm/opt:
     description: "Wasm Build"
     add-index-routes: "build"
     treeherder:
-        symbol: B
-        kind: build
-        tier: 1
         platform: web/opt
-    worker-type: b-linux
     worker:
         docker-image: {in-tree: wasm}
-        max-run-time: 3600
-        artifacts:
-            - type: directory
-              name: public/build
-              path: /builds/worker/artifacts
     run:
-        using: run-task
-        use-caches: true
-        cwd: '{checkout}'
         command: ./taskcluster/scripts/build/wasm.sh
