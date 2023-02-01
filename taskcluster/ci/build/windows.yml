@@ -13,12 +13,20 @@ task-defaults:
     fetches:
         fetch:
             - win-dev-env
-            - win-rustup
             - win-go
             - win-perl
             - win-sentry-cli
         toolchain:
             - qt-win
+        win-rustup:
+            name: win-rustup
+            docker-image: {in-tree: base}
+            description: Rustup for Windows v1.59.0
+            fetch:
+                type: static-url
+                url: https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe
+                sha256: 2220ddb49fea0e0945b1b5913e33d66bd223a67f19fd1c116be0318de7ed9d9c
+                size: 10077696
     worker:
         taskcluster-proxy: true
         chain-of-trust: true

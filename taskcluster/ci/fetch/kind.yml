@@ -42,13 +42,6 @@ tasks:
             artifact-name: open-ssl-src.zip
             sha256: aeb973da474f14210d3e1a1f942dcf779e2ae7e71e4c535e6c53ebabe632cc98
             size: 158837368
-    win-rustup:
-        description: Rustup for Windows v1.59.0
-        fetch:
-            type: static-url
-            url: https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe
-            sha256: 2220ddb49fea0e0945b1b5913e33d66bd223a67f19fd1c116be0318de7ed9d9c
-            size: 10077696
     win-go:
         description: go1.18.8
         fetch:
